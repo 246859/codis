@@ -25,6 +25,10 @@ const (
 
 var defaultLogger *Logger
 
+func init() {
+	Setup(defaultConfig)
+}
+
 func Setup(config Config) error {
 	logger, err := newLogger(config)
 	if err != nil {
@@ -44,32 +48,28 @@ func newLogger(config Config) (*Logger, error) {
 		config.Format = defaultConfig.Format
 	}
 
-	if len(config.InfoLog) == 0 {
-		config.InfoLog = defaultConfig.InfoLog
-	}
-
-	if len(config.ErrorLog) == 0 {
-		config.ErrorLog = defaultConfig.ErrorLog
-	}
-
 	var (
 		logger       = new(Logger)
 		hooks        []HookCloser
 		logrusLogger = logrus.New()
 	)
 
-	// setup hooks
-	infoHook, err := newLevelFileHook(config.InfoLog, logrus.InfoLevel, logrus.WarnLevel)
-	if err != nil {
-		return logger, err
+	if len(config.InfoLog) > 0 {
+		// setup hooks
+		infoHook, err := newLevelFileHook(config.InfoLog, logrus.InfoLevel, logrus.WarnLevel)
+		if err != nil {
+			return logger, err
+		}
+		hooks = append(hooks, infoHook)
 	}
 
-	errorHook, err := newLevelFileHook(config.ErrorLog, logrus.ErrorLevel)
-	if err != nil {
-		return logger, err
+	if len(config.ErrorLog) > 0 {
+		errorHook, err := newLevelFileHook(config.ErrorLog, logrus.ErrorLevel)
+		if err != nil {
+			return logger, err
+		}
+		hooks = append(hooks, errorHook)
 	}
-
-	hooks = append(hooks, infoHook, errorHook)
 
 	for _, hook := range hooks {
 		logrusLogger.AddHook(hook)
@@ -107,8 +107,8 @@ func newLogger(config Config) (*Logger, error) {
 var defaultConfig = Config{
 	Level:    "info",
 	Format:   "text",
-	InfoLog:  "/var/lib/codis/info.log",
-	ErrorLog: "/var/lib/codis/error.log",
+	InfoLog:  "",
+	ErrorLog: "",
 }
 
 type Config struct {
