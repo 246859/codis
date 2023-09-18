@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"github.com/246859/codis/pkg/logger"
 	"io"
-	"log"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -43,6 +43,7 @@ func (c *CocoHandler) Handle(ctx context.Context, conn net.Conn) {
 
 	c.mu.Lock()
 
+	// lazy initialization
 	if c.conns == nil {
 		c.conns = make(map[*net.Conn]struct{})
 	}
@@ -64,7 +65,7 @@ func (c *CocoHandler) Handle(ctx context.Context, conn net.Conn) {
 		select {
 		// context canceled
 		case <-ctx.Done():
-			log.Println(ctx.Err())
+			logger.Warn(ctx.Err())
 			return
 		default:
 			readString, err := reader.ReadString('\n')
@@ -72,20 +73,16 @@ func (c *CocoHandler) Handle(ctx context.Context, conn net.Conn) {
 				if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
 					return
 				}
-				log.Println("connection error", err)
+				logger.Error("connection error: ", err)
 				return
 			}
-			log.Println("receive", readString)
-			n, err := conn.Write([]byte(readString))
+			logger.Info("server receive: ", readString)
+			_, err = conn.Write([]byte(readString))
 			if err != nil {
-				log.Println(err)
+				logger.Error("server write error: ", err)
 				return
 			}
-			log.Println("write", readString, n)
-			if err != nil {
-				log.Println(err)
-				return
-			}
+			logger.Info("server send: ", readString)
 		}
 	}
 }

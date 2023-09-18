@@ -3,9 +3,9 @@ package coco
 import (
 	"context"
 	errors2 "errors"
+	"github.com/246859/codis/pkg/logger"
 	"github.com/246859/codis/pkg/util/syncx"
 	"github.com/pkg/errors"
-	"log"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -183,7 +183,7 @@ func (s *Server) Serve(lis net.Listener, handler Handler) error {
 	}
 	defer s.trackListener(lis, handler, false)
 
-	log.Printf("tcp server is listening on %s\n", lis.Addr().String())
+	logger.Infof("tcp server is listening on %s", lis.Addr().String())
 
 	// handle connection
 	for {
@@ -198,7 +198,7 @@ func (s *Server) Serve(lis net.Listener, handler Handler) error {
 
 			var neterr net.Error
 			if errors.As(err, &neterr) && neterr != nil && neterr.Timeout() && timeC < 5 {
-				log.Println("connect timeout, will be retry in 2 seconds")
+				logger.Warnf("connect timeout, retry in %s later", s.cfg.Retry.String())
 				time.Sleep(s.cfg.Retry)
 				timeC++
 				continue
@@ -207,7 +207,7 @@ func (s *Server) Serve(lis net.Listener, handler Handler) error {
 		}
 
 		s.connCount++
-		log.Printf("[%d]connection established: %s\n", s.connCount, conn.RemoteAddr())
+		logger.Infof("[%d] remote connection established: %s", s.connCount, conn.RemoteAddr())
 
 		go func() {
 			defer func() {
