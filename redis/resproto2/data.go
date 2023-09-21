@@ -1,6 +1,7 @@
 package resproto2
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -13,7 +14,7 @@ type StatusMsg struct {
 }
 
 func (s StatusMsg) Bytes() []byte {
-	return []byte(s.status)
+	return []byte(string(simpleStringMsg) + s.status + CRLF)
 }
 
 func (s StatusMsg) Status() string {
@@ -25,7 +26,7 @@ type IntegerMsg struct {
 }
 
 func (i IntegerMsg) Bytes() []byte {
-	return []byte(strconv.FormatInt(i.i, 10))
+	return []byte(string(integerMsg) + strconv.FormatInt(i.i, 10) + CRLF)
 }
 
 func (i IntegerMsg) Int64() int64 {
@@ -37,7 +38,7 @@ type ErrorMsg struct {
 }
 
 func (e ErrorMsg) Bytes() []byte {
-	return []byte(e.err.Error())
+	return []byte(string(errorMsg) + e.err.Error() + CRLF)
 }
 
 func (e ErrorMsg) Error() error {
@@ -59,10 +60,11 @@ func (a ArrayMsg) Array() []Data {
 
 func (a ArrayMsg) Bytes() []byte {
 	var b []byte
-
+	b = append(b, fmt.Sprintf("%c%d\r\n", arrayMsg, a.len)...)
 	for _, data := range a.arr {
-		b = append(b, append(data.Bytes(), []byte(CRLF)...)...)
+		b = append(b, data.Bytes()...)
 	}
+	b = append(b, CRLF...)
 	return b
 }
 
@@ -76,5 +78,9 @@ func (b BulkStringMsg) Len() int64 {
 }
 
 func (b BulkStringMsg) Bytes() []byte {
+	var bs []byte
+	bs = append(bs, fmt.Sprintf("%c%d\r\n", bulkStringMsg, b.len)...)
+	bs = append(bs, b.data...)
+	bs = append(bs, CRLF...)
 	return b.data
 }
