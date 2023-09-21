@@ -6,6 +6,7 @@ func Wait(f func()) chan struct{} {
 	go func() {
 		f()
 		done <- struct{}{}
+		close(done)
 	}()
 	return done
 }
